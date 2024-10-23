@@ -1,8 +1,16 @@
 # 📰 News Research Tool
 
-![Alt Text](Research/Result.jpg)
+![Alt Text](Notebooks/Images/Result.jpg)
 
 Welcome to the **News Research Tool** – a powerful application that makes news research smarter and faster! This tool extracts, processes, and summarizes news articles to help you save time and get the information you need more efficiently.
+
+
+1. [Key Features](#-key-features)
+2. [Why Use the News Research Tool?](#-why-use-the-news-research-tool)
+3. [Project Structure](#project-structure)
+4. [Technical Blueprint](#technical-blueprint)
+5. [Steps Overview](#steps-overview)
+6. [Future Enhancements](#future-enhancements)
 
 
 ## 🚀 Key Features
@@ -46,12 +54,13 @@ This bridges the gap by combining LLM-based text generation with real-time conte
 
 ## Technical Blueprint
 
-![Technical Blueprint](Research/technical_blueprint.jpg)
+![Technical Blueprint](Notebooks/Images/Technical_blueprint.jpg)
 
-### 1. Streamlit App Title and Sidebar
+## Steps Overview
+### 1. Streamlit App Initialization
 
-- Sets the title of the app and creates a sidebar for user input.
-- Allows users to input up to three URLs and includes a button to process those links.
+- Initializes the app with a title and sidebar for user inputs.
+- Accepts up to three news article URLs and includes a button to start processing.
 - Inititalizes file_path to pickle file, to be used later upon data ingestion.
 
 ```python
@@ -71,9 +80,9 @@ file_path = "vector_index.pkl"
 main_placeholder = st.empty()
 ```
 
-### 2. Language Model Configuration to be usedfor generation purposes
+### 2. Configuring the Language Model
 
-- I used Hugging face text generation model instead of OpenAI due to costs constraints.
+- I used Hugging face text generation model instead of OpenAI due to costs effectiveness.
 
 ```python
 repo_id = "google/flan-t5-small"
@@ -81,7 +90,7 @@ task = "text2text-generation"
 llm = HuggingFaceHub(repo_id=repo_id, task=task, model_kwargs={"temperature": 0.9, "max_length": 100})
 ```
 
-### 3. URL processing
+### 3. Processing URLs for Content Extraction
 
 - I used ***UnstructuredURLLoader*** class instance with the list of URLs provided by the user. This can handle unstructured data as well i.e. extracting relevant text from various types of webpages like HTML, PDFs etc.
 - ***main_placeholder.text*** is used to generate visual feedback to user on background information, important for user experience.
@@ -96,7 +105,7 @@ if process_url_clicked:
 
 ### 4. Data Assessments
 
-#### 4.1 Check if data is loaded correctly
+- Check if data is loaded correctly
 
 ```python
         if not data:
@@ -105,7 +114,7 @@ if process_url_clicked:
             # Add source metadata to each document
             docs = [Document(page_content=doc.page_content, metadata={"source": url}) for url, doc in zip(urls, data)]
 ```
-#### 4.2 Split data into chunks 
+- Split data into chunks 
 - Idea is to separate data based on relevant separators and overlaps for efficient storage and future search optimisation.
 ```python
             # Split data
@@ -118,18 +127,22 @@ if process_url_clicked:
 ```
 
 ### 5. Embedding data and creating vector_index using FAISS
+- Creates vector embeddings using sentence transformers for efficient retrieval.
+- The vector index is saved for future use, ensuring fast response times.
 ```python
             embedding_model_name = "sentence-transformers/paraphrase-MiniLM-L3-v2"
             embeddings = HuggingFaceEmbeddings(model_name=embedding_model_name)
             main_placeholder.text("Creating FAISS index... ✅")
             vectorstore = FAISS.from_documents(split_docs, embeddings)
 
-            # Store vector index in local storage
             with open(file_path, 'wb') as f:
                 pickle.dump(vectorstore, f)
             main_placeholder.text("Vector index created and saved ✅")
 ```
-### 6. Question query
+### 6. Query Handling and Response Generation
+- User queries are checked for token limits to optimize performance.
+- Ensures that responses are relevant to the user's questions with semantic search.
+
 ```python
 query = main_placeholder.text_input("Question: ")
 if query:
@@ -147,6 +160,9 @@ if query:
                 result = chain({"question": query}, return_only_outputs=True)
 ```
 ### 7. Display answer with sources 
+
+- After parsing through the Hugging Face LLM, the streamlit command retrieves the summarized result.
+- Also displays relevant source and links to confirm authenticity.
 ```python
               st.header("Answer")
                 st.write(result["answer"])
@@ -159,4 +175,13 @@ if query:
                     for source in sources_list:
                         st.write(source)
 ```
+## Future Enhancements
+
+1. **Dynamic Web Scraping**: Implement techniques like rotating proxies and user-agent spoofing to evade anti-scraping measures and ensure consistent access to news sources.
+
+2. **Cost Optimization**: Utilize serverless architectures, such as AWS Lambda, to dynamically scale processing power, minimizing costs during low-demand periods.
+
+3. **Data Integrity Checks**: Integrate automated validation mechanisms to cross-reference scraped content with trusted sources, ensuring accuracy and reliability.
+
+4. **Adaptive Retrieval Models**: Develop machine learning models that learn from user interactions to refine content retrieval and summarization based on user preferences.
 
